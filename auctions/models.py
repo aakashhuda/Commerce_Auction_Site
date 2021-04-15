@@ -3,4 +3,4 @@ from django.db import models
 
 
 class User(AbstractUser):
-    address = models.CharField(max_length=40)
+    pass
