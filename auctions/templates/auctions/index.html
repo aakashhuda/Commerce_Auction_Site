@@ -1,7 +1,29 @@
 {% extends "auctions/layout.html" %}
 
 {% block body %}
+    {% if message %}
+        <p>{{message}}</p>
+    {% endif %}
     <h2>Active Listings</h2>
-
-    TODO
+    {% if user.is_authenticated %}
+        {% for listing in listings %}
+            {% if listing.active %}
+                <div class="card mb-1 p-1" style="width: 18rem; line-height:3px;">
+                    <img class="card-img-top img-thumbnail" src="{{listing.img.url}}" alt="{{listing.title}}">
+                    <div class="card-body bg-light">
+                      <h5 class="card-title"><strong>{{listing.title}}</strong></h5>
+                      <p class="card-text">{{listing.text}}</p>
+                      <p class="card-text"><strong>Base Bid:</strong> {{listing.bs_bid}}</p>
+                      <p class="card-text"><strong>Date:</strong> {{listing.datefield}}</p>
+                      <a href="{% url 'auctions:listing_details' listing.title %}" class="btn btn-block btn-sm btn-secondary">Bid</a>
+                    </div>
+                  </div>
+            {% endif %}
+        {% empty %}
+            <p>No listing available</p>
+        {% endfor %}
+            
+    {% else %}
+          <h5 class="h5">Login to see listing</h5>
+    {% endif %}
 {% endblock %}
