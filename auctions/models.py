@@ -18,7 +18,7 @@ class Category(models.Model):
 
 class Listing(models.Model):
     title = models.CharField(max_length=40, blank=False, null=False)
-    text = models.CharField(max_length=100, blank= False, null= True)
+    text = models.CharField(max_length=200, blank= False, null= True)
     bs_bid = MoneyField(max_digits=19, decimal_places= 4, default_currency= 'BDT')
     img = models.ImageField(null = True, blank = True, upload_to = "listing_img/") 
     owner = models.ForeignKey(User, on_delete= models.CASCADE, null= True, blank=False,related_name='listing_own')

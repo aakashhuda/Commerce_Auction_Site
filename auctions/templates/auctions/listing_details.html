@@ -1,65 +1,118 @@
 {% extends "auctions/layout.html" %}
+{% load static %}
 {% block title %}
     {{title}}
 {% endblock %}
 
 {% block body %}
-    {% if message %}
-        <div class="alert alert-primary" role="alert">
-            {{message}}
-        </div>
-    {% endif %}
-    {% if no_item_message %}
-        <p>{{title}},{{no_item_message}}</p>
-    {% else %}
-        <div>
-            <p>Title: {{listing.title}}</p>
-            <p>Description: {{listing.text}}</p>
-            <p>Base bid: {{listing.bs_bid}}</p>
-            <p>Listing Owner: {{listing.owner.username}}</p>
-            {% if request.user in listing.watchlist.all %}
-                <p>In the list</p>
-            {% endif %}
-            {% if hs_bid %}
-                <p>Highest Bid: {{hs_bid.amount}}</p>
-                <p>Highest Bidder: {{hs_bid.user}}</p>
-            {% else %}
-                <p>You'll be the first to bid</p>    
-            {% endif %}
-            {% if user.is_authenticated %}
-                <form action="{% url 'auctions:post_bid' %}" method="POST">
-                    {% csrf_token %}
-                    <div class="fieldWrapper mb-3">
-                        {{ form.amount.errors }}
-                        {{ form.amount.label_tag }}
-                        {{ form.amount }}
-                    </div>
-                    {% if request.user in listing.watchlist.all %}
-                        <div class="fieldWrapper mb-3">
-                            {{ form.remove_watchlist.errors }}
-                            {{ form.remove_watchlist.label_tag }}
-                            {{ form.remove_watchlist }}
-                        </div>
-                    {% else %}
-                    <div class="fieldWrapper mb-3">
-                        {{ form.watchlist.errors }}
-                        {{ form.watchlist.label_tag }}
-                        {{ form.watchlist }}
-                    </div>
-                    {% endif %}
-                    
-                    <input type="hidden" name="listing_info" value="{{listing}}">
-                    {% if listing.owner == request.user %}
-                        {{listing_form.as_p}}
-                    {% else %}
-                        <input type="hidden" name="active" id="id_active" value="{{listing.active}}">
-                    {% endif %}
-                    <input type="submit" value="submit">
-                </form>
-            {% endif %}
-        </div>
-    {% endif %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4 border-right">
 
+            {% if no_item_message %}
+                <p>{{title}},{{no_item_message}}</p>
+            {% elif listing.active %}
+                    <img src="{{listing.img.url}}" class="img-thumbnail w-50" alt="{{listing.title}}">
+                    <div class="mt-2">
+                        <strong>Title:</strong> {{listing.title}} <br>
+                        <strong>Description:</strong> {{listing.text}} <br>
+                        <strong>Owner:</strong> {{listing.owner.username|title}} <br>
+                        <strong>Category: </strong>{{listing.category}}
+                    </div>
+        </div>
+        <div class="col-4 border-right">
+                {% if message %}
+                    <div class="alert alert-primary" role="alert">
+                        {{message}}
+                    </div>
+                {% endif %}
+                <table class="table table-sm table-striped rounded table-success text-center">
+                    <thead>
+                        <tr>
+                            <th scope="col">Base Price</th>
+                            <th>Highest Bid</th>
+                            <th>Highest Bidder</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{listing.bs_bid}}</td>
+                            {% if hs_bid %}
+                                <td>{{hs_bid.amount}}</td>
+                                <td>{{hs_bid.user|title}}</td>
+                            {% else %}
+                                <td>No bid yet</td>
+                                <td>N/A</td>    
+                            {% endif %}
+                        </tr>
+                    </tbody>
+                </table>
+                
+                
+                {% if user.is_authenticated %}
+                    <form action="{% url 'auctions:post_bid' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="fieldWrapper mb-3">
+                            {{ form.amount.errors }}
+                            {{ form.amount.label_tag }}
+                            {{ form.amount }}
+                        </div>
+                        {% if request.user in listing.watchlist.all %}
+                            <div class="fieldWrapper mb-3">
+                                {{ form.remove_watchlist.errors }}
+                                {{ form.remove_watchlist.label_tag }}
+                                {{ form.remove_watchlist }}
+                            </div>
+                        {% else %}
+                        <div class="fieldWrapper mb-3">
+                            {{ form.watchlist.errors }}
+                            {{ form.watchlist.label_tag }}
+                            {{ form.watchlist }}
+                        </div>
+                        {% endif %}
+
+                        <input type="hidden" name="listing_info" value="{{listing}}">
+                        {% if listing.owner == request.user %}
+                            {{listing_form.as_p}}
+                        {% else %}
+                            <input type="hidden" name="active" id="id_active" value="{{listing.active}}">
+                        {% endif %}
+                        <input class="btn btn-dark btn-sm" type="submit" value="Submit">
+                    </form>
+                    <form action="{% url 'auctions:save_comment' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="fieldWrapper mb-3">
+                            {{comment_form.comment.errors}}
+                            {{comment_form.comment.label_tag}}
+                            {{comment_form.comment}}
+                        </div>
+                        <input type="hidden" name="listing" value="{{listing}}">
+                        <input class="btn btn-block btn-dark btn-sm" type="submit" value="Submit Comment">
+                    </form>
+        </div>
+        <div class="col-4">
+                <div>
+                    <h4>Comments</h4>
+                    {% for comment in comments %}
+                    <div class="my-1 px-2">
+                        <strong>{{comment.user|title}}</strong><br>
+                        {{comment.text}}<br>
+                        <small>{{comment.datetime}}</small>
+                        <hr>
+                    </div>
+                    {% empty %}
+                        <p>No comments posted</p>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% else %}
+                <h3 class="h3 text-center">Bidding ended</h3>
+                    <img class="d-flex justify-content-center" src="{% static 'auctions/bid_winner.jpeg' %}" alt="winner_image" width="200px">
+                <h1 class="h1 text-center">Bid Winner <strong>{{hs_bid.user|title}}</strong></h1>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 

@@ -4,18 +4,29 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.urls import reverse
-from .forms import AddListing,BidForm,UpdateListingForm
-from .models import User,Category,Listing,Bid
+from .forms import AddListing,BidForm,UpdateListingForm,CommentForm
+from .models import User,Category,Listing,Bid,Comment
 from django.core.exceptions import EmptyResultSet
 
 
 def index(request):
     try:
+        user = User.objects.get(username=request.user)
+        count = user.user_watchlist.all().count()
+    except:
+        count = 0
+    try:
         listings = Listing.objects.all()
     except:
-        return render(request, "auctions/index.html")
+        return render(request, "auctions/index.html",{
+            "count":count,
+        })
+    categories = Category.objects.all()
+    
     return render(request, "auctions/index.html",{
-        "listings":listings
+        "listings":listings,
+        "categories":categories,
+        "count":count,
     })
 
 
@@ -74,10 +85,13 @@ def register(request):
         return render(request, "auctions/register.html")
 @login_required(login_url='auctions:login')
 def add_listing(request):
+    user = User.objects.get(username=request.user)
+    count = user.user_watchlist.all().count()
     form = AddListing()
     print(request.user.id)
     return render(request, "auctions/add_listing_form.html", {
         "form":form,
+        "count":count,
     })
 @login_required(login_url='auctions:login')
 def save_listing(request):
@@ -90,40 +104,50 @@ def save_listing(request):
             img = form.cleaned_data["img"]
             cat = form.cleaned_data["category"]
             try:
-                check_cat = Category.objects.get(cat_name=cat)
+                check_cat = Category.objects.get(cat_name=cat.title())
                 print(check_cat)
             except:
-                new_category = Category(cat_name = cat)
+                new_category = Category(cat_name = cat.title())
                 new_category.save()
                 print(new_category)
-                new_listing = Listing(title = title,text=text,bs_bid=bs_bid,img=img,category=new_category,
+                new_listing = Listing(title = title.title(),text=text,bs_bid=bs_bid,img=img,category=new_category,
                 owner=request.user)
                 new_listing.save()
                 return HttpResponseRedirect(reverse("auctions:index"))
-            new_listing = Listing(title = title,text=text,bs_bid=bs_bid,img=img,category=check_cat,
+            new_listing = Listing(title = title.title(),text=text,bs_bid=bs_bid,img=img,category=check_cat,
             owner=request.user)
             new_listing.save()
             return HttpResponseRedirect(reverse("auctions:index"))
         else:
+            user = User.objects.get(username=request.user)
+            count = user.user_watchlist.all().count()
             return render(request, "auctions/add_listing_form.html",{
                 "form":form,
-                "message": "Invalid Request! Fill up and submit the form again."
-            })     
+                "message": "Invalid Request! Fill up and submit the form again.",
+                "count":count,
+            })
+    user = User.objects.get(username=request.user)
+    count = user.user_watchlist.all().count()     
     return render(request, "auctions/add_listing_form.html",{
         "form":AddListing(),
         "message": "Invalid Request! Fill up and submit the form!.",
+        "count":count,
         
         
     })
 @login_required(login_url='auctions:login')
 def listing_details(request,title):
+    user = User.objects.get(username=request.user)
+    count = user.user_watchlist.all().count()
     try:
         listing = Listing.objects.get(title=title.title())
     except Listing.DoesNotExist:
         return render(request, "auctions/listing_details.html",{
             "no_item_message":"Item not available",
             "title":title,
+            "count":count,
         })
+    comments = Comment.objects.filter(listing=listing).order_by('-datetime').all()
     try:
         hs_bid = Bid.objects.filter(listing=listing).order_by('-amount').first()
     except Bid.EmptyResultSet:
@@ -132,6 +156,9 @@ def listing_details(request,title):
             "title":title,
             "form":BidForm(),
             "listing_form": UpdateListingForm(instance=listing),
+            "comment_form":CommentForm(),
+            "comments":comments,
+            "count":count,
         })
     if hs_bid is not None:
         data = {"amount":hs_bid.amount}          
@@ -141,6 +168,9 @@ def listing_details(request,title):
             "hs_bid":hs_bid,
             "form":BidForm(initial=data),
             "listing_form": UpdateListingForm(instance=listing),
+            "comment_form":CommentForm(),
+            "comments":comments,
+            "count":count,
         })
     else:
         return render(request, "auctions/listing_details.html",{
@@ -149,7 +179,10 @@ def listing_details(request,title):
             "hs_bid":hs_bid,
             "form":BidForm(),
             "listing_form": UpdateListingForm(instance=listing),
-        })   
+            "comment_form":CommentForm(),
+            "comments":comments,
+            "count":count,
+        })  
 
 @login_required(login_url='auctions:login')
 def post_bid(request):
@@ -180,6 +213,7 @@ def post_bid(request):
                             "title": listing.title,
                             "form":BidForm(request.POST),
                             "listing_form":UpdateListingForm(request.POST),
+                            "comment_form":CommentForm(),
                         })
                 else:
                     if amount > listing.bs_bid:
@@ -193,6 +227,7 @@ def post_bid(request):
                             "title": listing.title,
                             "form":bid_form,
                             "listing_form":list_activation,
+                            "comment_form":CommentForm(),
                         })
 
             if watchlist is True:
@@ -216,3 +251,73 @@ def post_bid(request):
         else:
             return HttpResponse('list activation failed')
     return HttpResponseRedirect(reverse('auctions:index'))
+
+def save_comment(request):
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.cleaned_data["comment"]
+            print(comment)
+            listing_name = request.POST['listing']
+            user = request.user
+            listing = Listing.objects.get(title=listing_name)
+            new_comment = Comment(user=user,listing=listing,text=comment)
+            new_comment.save()
+            return HttpResponseRedirect(reverse('auctions:listing_details', kwargs={'title':listing.title.title()}))
+
+        else:
+            user = User.objects.get(username=request.user)
+            count = user.user_watchlist.all().count()
+            return render(request, "auctions/listing_details",{
+                "listing":listing,
+                "title":title,
+                "hs_bid":hs_bid,
+                "form":BidForm(initial=data),
+                "listing_form": UpdateListingForm(instance=listing),
+                "comment_form":form,
+                "message":"Form not Valid! Comment Again",
+                "count":count,
+            })
+    else:
+        return HttpResponseRedirect(reverse("auctions:index"))
+@login_required(login_url='auctions:login')
+def categorized_listings(request,category):
+    user = User.objects.get(username=request.user)
+    count = user.user_watchlist.all().count()
+    try:
+        category = Category.objects.get(cat_name=category.title())
+    except Category.DoesNotExist:
+        return render(request, 'auctions/category_listings.html',{
+            'message':f"Invalid query.{category.title()} doesn't exist",
+            'count':count,
+        })
+    listings = category.category_listing.all()
+    if listings is None:
+        return render(request, 'auctions/category_listings.html',{
+            "message": "No listing available!",
+            "count":count,
+        })
+    else:
+        return render(request, 'auctions/category_listings.html',{
+            "listings":listings,
+            "count":count,
+        }) 
+@login_required(login_url='auctions:login')
+def watchlist(request,user):
+    print(request.user)
+    print(user)
+    if user == str(request.user):
+        try:
+            user_object = User.objects.get(username=user)
+        except User.DoesNotExist:
+            return render(request, 'auctions/watchlist.html',{
+                "message": f"{user.title()} doesn't exist!"
+            })
+        watchlist = user_object.user_watchlist.all()
+        return render(request, 'auctions/watchlist.html',{
+            "watchlist":watchlist,
+        })
+    else:
+        return render(request, "auctions/watchlist.html",{
+            "message": "You are not allowed to see others watchlist!"
+        })

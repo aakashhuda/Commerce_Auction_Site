@@ -1,3 +1,18 @@
-body {
-    padding: 10px;
+#up {
+    background-image: linear-gradient(to right top, #dadee3, #cfdbe0, #c6d9d7, #c4d5ca, #c9cfbc);
+}
+* {
+    font-family: 'PT Sans Narrow', sans-serif;
+}
+
+.nav {
+    background-color: #c6d9d7;
+}
+h {
+    background-color: #6EFACC;
+}
+.my-flex {
+    display: flex;
+    border: black;
+    border-style: solid;
 }

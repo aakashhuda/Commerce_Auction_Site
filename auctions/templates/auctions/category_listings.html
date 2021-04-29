@@ -1,0 +1,28 @@
+{% extends 'auctions/layout.html' %}
+{% block title %}
+    Category based listings
+{% endblock %}
+{% block body %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-4">
+
+            </div>
+            <div class="col-4">
+                <h2 class="h2 text-center">Listings</h2>
+                {% if message %}
+                    <strong class="d-flex justify-content-center">{{message}}</strong>
+                {% endif %}
+                <ul class="list-group list-group-flush">
+                    {% for listing in listings %}
+                        <li class="list-group-item text-center"><a class="text-dark" href="{% url 'auctions:listing_details' listing %}">{{listing}}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="col-4">
+
+            </div>
+        </div>
+
+    </div>
+{% endblock %}

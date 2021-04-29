@@ -1,29 +1,49 @@
 {% extends "auctions/layout.html" %}
 
 {% block body %}
-    {% if message %}
-        <p>{{message}}</p>
-    {% endif %}
-    <h2>Active Listings</h2>
-    {% if user.is_authenticated %}
-        {% for listing in listings %}
-            {% if listing.active %}
-                <div class="card mb-1 p-1" style="width: 18rem; line-height:3px;">
-                    <img class="card-img-top img-thumbnail" src="{{listing.img.url}}" alt="{{listing.title}}">
-                    <div class="card-body bg-light">
-                      <h5 class="card-title"><strong>{{listing.title}}</strong></h5>
-                      <p class="card-text">{{listing.text}}</p>
-                      <p class="card-text"><strong>Base Bid:</strong> {{listing.bs_bid}}</p>
-                      <p class="card-text"><strong>Date:</strong> {{listing.datefield}}</p>
-                      <a href="{% url 'auctions:listing_details' listing.title %}" class="btn btn-block btn-sm btn-secondary">Bid</a>
-                    </div>
-                  </div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-2 border-right">
+            <h3 class="h3 text-center">Categories</h3>
+            <ul class="list-group list-group-flush">
+                {% for category in categories %}
+                    <li class="list-group-item text-center"><a class="text-dark" href="{% url 'auctions:categorized_listings' category %}">{{category}}</a></li>
+                {% empty %}
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-8 border-right">
+            <h3 class="h3 text-center">Active Listings</h3>
+            {% if message %}
+                <p class="">{{message}}</p>
             {% endif %}
-        {% empty %}
-            <p>No listing available</p>
-        {% endfor %}
-            
-    {% else %}
-          <h5 class="h5">Login to see listing</h5>
-    {% endif %}
+            {% if user.is_authenticated %}
+            <div class="d-inline-flex flex-row flex-wrap clearfix">
+                {% for listing in listings %}
+                    {% if listing.active %}
+                        <div class="card m-1 p-1 border-secondary" style="width: 13rem; line-height:2px;">
+                            <img class="card-img-top h-50" src="{{listing.img.url}}" alt="{{listing.title}}">
+                            <div class="card-body bg-light">
+                              <h5 class="h5 card-title"><strong>{{listing.title}}</strong></h5>
+                              <p class="card-text">{{listing.category}}</p>
+                              <p class="card-text"><strong>Base Bid:</strong> {{listing.bs_bid}}</p>
+                              <p class="card-text"><strong>Date:</strong> {{listing.datefield}}</p>
+                              <a href="{% url 'auctions:listing_details' listing.title %}" class="btn btn-block btn-sm btn-dark">Bid info</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% empty %}
+                    <p>No listing available</p>
+                {% endfor %}
+            </div>        
+            {% else %}
+                  <h5 class="h5">Login to see listing</h5>
+            {% endif %}
+                    
+        </div>
+        <div class="col-2">
+
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,0 +1,28 @@
+{% extends "auctions/layout.html" %}
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4">
+            
+        </div>
+        <div class="col-4">
+            <h2 class="text-center">Watchlist</h2>
+
+            {% if message %}
+                <div class="text-center">{{ message }}</div>
+            {% else %}
+                <ul class="list-group list-group-flush">
+                    {% for listing in watchlist %}
+                    <li class="list-group-item text-center"><a class="text-dark" href="{% url 'auctions:listing_details' listing %}">{{listing}}</a></li>
+                    {% empty %}
+                    <li class="list-group-item text-center">No items</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        <div class="col-4">
+
+        </div>
+    </div>
+</div>
+{% endblock %}

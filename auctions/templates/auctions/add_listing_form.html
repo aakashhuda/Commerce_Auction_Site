@@ -4,43 +4,52 @@
     Add Listing
 {% endblock %}
 {% block body %}
-<h4 class="h4">Add Listing</h4>
-{% if message %}
-    <strong>{{message}}</strong>
-{% endif %}
-<div class="border border-1 rounded w-50 p-3">
-    <form action="{% url 'auctions:save_listing' %}" enctype="multipart/form-data" method="POST">
-        {% csrf_token %}
-        <div class="fieldWrapper mb-3">
-            {{ form.title.errors }}
-            {{ form.title.label_tag }}
-            {{ form.title }}
-        </div>
-        <div class="fieldWrapper mb-3">
-            {{ form.text.errors }}
-            {{ form.text.label_tag }}
-            {{ form.text }}
-        </div>
-        <div class="fieldWrapper mb-3">
-            {{ form.category.errors }}
-            {{ form.category.label_tag }}
-            {{ form.category }}
-            
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4">
 
         </div>
-        <div class="fieldWrapper mb-3">
-            {{ form.bs_bid.errors }}
-            {{ form.bs_bid.label_tag }}
-            {{ form.bs_bid }}
-        </div>
-        <div class="fieldWrapper mb-3">
-            {{ form.img.label_tag }}
-            {{ form.img }}
-            {{ form.img.errors }}
-        </div>
+        <div class="col-4">
+            <h4 class="h4 text-center">Add Listing</h4>
+            {% if message %}
+                <strong>{{message}}</strong>
+            {% endif %}
+            <div class="border border-secondary border-1 rounded p-3">
+                <form action="{% url 'auctions:save_listing' %}" enctype="multipart/form-data" method="POST">
+                    {% csrf_token %}
+                    <div class="fieldWrapper mb-3">
+                        {{ form.title.errors }}
+                        {{ form.title.label_tag }}
+                        {{ form.title }}
+                    </div>
+                    <div class="fieldWrapper mb-3">
+                        {{ form.text.errors }}
+                        {{ form.text.label_tag }}
+                        {{ form.text }}
+                    </div>
+                    <div class="fieldWrapper mb-3">
+                        {{ form.category.errors }}
+                        {{ form.category.label_tag }}
+                        {{ form.category }}        
 
+                    </div>
+                    <div class="fieldWrapper mb-3">
+                        {{ form.bs_bid.errors }}
+                        {{ form.bs_bid.label_tag }}
+                        {{ form.bs_bid }}
+                    </div>
+                    <div class="fieldWrapper mb-3">
+                        {{ form.img.label_tag }}
+                        {{ form.img }}
+                        {{ form.img.errors }}
+                    </div>
+                    <button class="btn btn-sm btn-dark" type="submit">Submit</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-4">
 
-        <button class="btn btn-sm btn-primary" type="submit">Submit</button>
-    </form>
+        </div>
+    </div>
 </div>
 {% endblock %}
