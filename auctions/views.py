@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.urls import reverse
 from .forms import AddListing,BidForm,UpdateListingForm,CommentForm
-from .models import User,Category,Listing,Bid,Comment
+from .models import User,Category,Listing,Bid,Comment,Winner
 from django.core.exceptions import EmptyResultSet
 
 
@@ -131,10 +131,9 @@ def save_listing(request):
     return render(request, "auctions/add_listing_form.html",{
         "form":AddListing(),
         "message": "Invalid Request! Fill up and submit the form!.",
-        "count":count,
-        
-        
+        "count":count,    
     })
+    
 @login_required(login_url='auctions:login')
 def listing_details(request,title):
     user = User.objects.get(username=request.user)
@@ -155,19 +154,18 @@ def listing_details(request,title):
             "listing":listing,
             "title":title,
             "form":BidForm(),
-            "listing_form": UpdateListingForm(instance=listing),
+            "listing_form": UpdateListingForm(),
             "comment_form":CommentForm(),
             "comments":comments,
             "count":count,
         })
-    if hs_bid is not None:
-        data = {"amount":hs_bid.amount}          
+    if hs_bid is not None:         
         return render(request, "auctions/listing_details.html",{
             "listing":listing,
             "title":title,
             "hs_bid":hs_bid,
-            "form":BidForm(initial=data),
-            "listing_form": UpdateListingForm(instance=listing),
+            "form":BidForm(),
+            "listing_form": UpdateListingForm(),
             "comment_form":CommentForm(),
             "comments":comments,
             "count":count,
@@ -178,7 +176,7 @@ def listing_details(request,title):
             "title":title,
             "hs_bid":hs_bid,
             "form":BidForm(),
-            "listing_form": UpdateListingForm(instance=listing),
+            "listing_form": UpdateListingForm(),
             "comment_form":CommentForm(),
             "comments":comments,
             "count":count,
@@ -188,24 +186,25 @@ def listing_details(request,title):
 def post_bid(request):
     if request.method == 'POST':
         listing_info = request.POST["listing_info"]
-        print(listing_info)
         listing = Listing.objects.get(title=listing_info)
         bid_form = BidForm(request.POST)
         list_activation = UpdateListingForm(request.POST)
 
         if bid_form.is_valid():
+            #extracting values from bidding form
             amount = bid_form.cleaned_data["amount"]
             watchlist = bid_form.cleaned_data["watchlist"]
             remove_watchlist = bid_form.cleaned_data["remove_watchlist"]
-            print(f"watchlist: {watchlist}")
             if amount is not None:
+                #getting the highest bid for that listing
                 hs_bid = Bid.objects.filter(listing=listing).order_by('-amount').first()
                 if hs_bid is not None:
+                #if any highest bid is found    
                     if amount > hs_bid.amount and amount > listing.bs_bid:
+                        #bidding amount condition
                         bid = Bid(listing=listing,user=request.user,amount=amount)
                         bid.save()
                     else:
-                        print(hs_bid)
                         return render(request, "auctions/listing_details.html",{
                             "message": "Bid must be greater than the Base price & Highest Bid",
                             "listing":listing,
@@ -215,11 +214,14 @@ def post_bid(request):
                             "listing_form":UpdateListingForm(request.POST),
                             "comment_form":CommentForm(),
                         })
+                #if no highest bid found
                 else:
+                    #then it only checks with the listing's base price
                     if amount > listing.bs_bid:
                         bid = Bid(listing=listing, user =request.user, amount=amount)
                         bid.save()
                     else:
+                        #sends back the form with an error message
                         return render(request, "auctions/listing_details.html",{
                             "message": "Bid must be greater than the Base price & Highest Bid",
                             "listing":listing,
@@ -229,35 +231,59 @@ def post_bid(request):
                             "listing_form":list_activation,
                             "comment_form":CommentForm(),
                         })
-
+            
+            #checks whether the user add to his/her watchlist.Saves if found.
             if watchlist is True:
                 listing.watchlist.add(request.user)
             if remove_watchlist is True:
                 listing.watchlist.remove(request.user)
         else:
-            return HttpResponse('Bid form not Ok')
-        
+            return render(request, "auctions/listing_details.html", {
+               "message": "Checking form",
+                "listing":listing,
+                "hs_bid":hs_bid,
+                "title": listing.title,
+                "form":BidForm(bid_form),
+                "listing_form":UpdateListingForm(),
+                "comment_form":CommentForm(), 
+            })
+        #checking owner's activating a listing process
         if list_activation.is_valid():
+            #extract checkbox boolean value from the form
             active = list_activation.cleaned_data["active"]
-            print(f"listactivations: {active}")
             if active is False:
+                #changing the listing's active situation & setting the winner for this listing biddng process
                 listing.active = False
                 listing.save()
-                return HttpResponseRedirect(reverse('auctions:index'))
+                hs_bid = Bid.objects.filter(listing=listing).order_by('-amount').first()
+                winner_user = User.objects.get(username = hs_bid.user)
+                winner = Winner(winner = winner_user,hs_bid= hs_bid)
+                winner.save()
+                return HttpResponseRedirect(reverse('auctions:listing_details', kwargs={'title':listing}))
             else:
+                #if true than active situation changed to true and it says active.No winner set.
                 listing.active = True
                 listing.save()
-                return HttpResponseRedirect(reverse('auctions:index'))
+                return HttpResponseRedirect(reverse('auctions:listing_details', kwargs={'title':listing}))
+        #if checking form is not valid
         else:
-            return HttpResponse('list activation failed')
-    return HttpResponseRedirect(reverse('auctions:index'))
+            return render(request, "auctions/listing_details.html", {
+               "message": "Invalid Form",
+                "listing":listing,
+                "hs_bid":hs_bid,
+                "title": listing.title,
+                "form":BidForm(),
+                "listing_form":list_activation,
+                "comment_form":CommentForm(), 
+            })
+    return HttpResponseRedirect(reverse('auctions:listing_details',kwargs={'title':listing}))
 
+@login_required(login_url='auctions:login')
 def save_comment(request):
     if request.method == 'POST':
         form = CommentForm(request.POST)
         if form.is_valid():
             comment = form.cleaned_data["comment"]
-            print(comment)
             listing_name = request.POST['listing']
             user = request.user
             listing = Listing.objects.get(title=listing_name)
@@ -304,8 +330,6 @@ def categorized_listings(request,category):
         }) 
 @login_required(login_url='auctions:login')
 def watchlist(request,user):
-    print(request.user)
-    print(user)
     if user == str(request.user):
         try:
             user_object = User.objects.get(username=user)
@@ -319,5 +343,5 @@ def watchlist(request,user):
         })
     else:
         return render(request, "auctions/watchlist.html",{
-            "message": "You are not allowed to see others watchlist!"
+            "message": "Permission denied!"
         })
